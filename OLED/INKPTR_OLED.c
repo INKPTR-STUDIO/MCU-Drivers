@@ -20,6 +20,16 @@ static const uint8_t INKPTR_OLED_InitCmd[]=
 	0xdB,0x40,	// VCOMH voltage
 	0xa4		// RAM display
 };
+static uint8_t INKPTR_OLED_ValueCheck_Page(uint8_t PageValue)
+{
+	if(PageValue > INKPTR_OLED_Model_Dat[INKPTR_OLED_Model][3])	{return 1;}
+	else														{return 0;}
+}
+static uint8_t INKPTR_OLED_ValueCheck_List(uint8_t ListValue)
+{
+	if(ListValue > INKPTR_OLED_Model_Dat[INKPTR_OLED_Model][4])	{return 1;}
+	else														{return 0;}
+}
 static void INKPTR_OLED_Cmd(void)
 {
 	INKPTR_I2C_Start();
@@ -109,6 +119,10 @@ void INKPTR_OLED_Set(INKPTR_OLED_SetMode SetMode, uint8_t Dat)
 void INKPTR_OLED_Brush(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, uint8_t List_End, uint8_t Style_Byte)
 {
 	uint8_t x, y;
+	if(INKPTR_OLED_ValueCheck_Page(Page_Begin) || INKPTR_OLED_ValueCheck_Page(Page_End))	{return;}
+	if(INKPTR_OLED_ValueCheck_List(List_Begin) || INKPTR_OLED_ValueCheck_List(List_End))	{return;}
+	if(Page_Begin > Page_End)	{return;}
+	if(List_Begin > List_End)	{return;}
 	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	for(y = Page_Begin ; y < Page_End+1 ; y++) {
 		INKPTR_OLED_Cmd();
@@ -135,6 +149,8 @@ void INKPTR_OLED_Brush(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin,
  */
 void INKPTR_OLED_Draw(uint8_t Page_Begin, uint8_t List_Begin)
 {
+	if(INKPTR_OLED_ValueCheck_Page(Page_Begin))	{return;}
+	if(INKPTR_OLED_ValueCheck_List(List_Begin))	{return;}
 	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	INKPTR_OLED_Cmd();
 	INKPTR_I2C_SendByte(0xB0 + Page_Begin);															INKPTR_I2C_ReceiveACK();
@@ -207,7 +223,10 @@ void INKPTR_OLED_Init(INKPTR_OLED_AddressingMode AddressingMode, INKPTR_OLED_Set
 void INKPTR_OLED_Roll(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, uint8_t List_End, INKPTR_OLED_RollMode RollMode)
 {
 	uint8_t SpeedTable[]={3, 2, 1, 0, 6, 5, 4, 7};
-
+	if(INKPTR_OLED_ValueCheck_Page(Page_Begin) || INKPTR_OLED_ValueCheck_Page(Page_End))	{return;}
+	if(INKPTR_OLED_ValueCheck_List(List_Begin) || INKPTR_OLED_ValueCheck_List(List_End))	{return;}
+	if(Page_Begin > Page_End)	{return;}
+	if(List_Begin > List_End)	{return;}
 	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	INKPTR_OLED_Cmd();
 	if(RollMode & 0x80)	{INKPTR_I2C_SendByte(0x27);	INKPTR_I2C_ReceiveACK();}
