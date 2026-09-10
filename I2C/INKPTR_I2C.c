@@ -158,14 +158,14 @@ void INKPTR_I2C_Init(void)
     RCC_APB2PeriphClockCmd(INKPTR_I2C_RCC_APB2Periph, ENABLE);
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     // SCL
-    GPIO_InitStructure.GPIO_Pin = INKPTR_I2C_SCL_Pin;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = INKPTR_I2C_GPIO_Speed;
+    GPIO_InitStructure.GPIO_Pin     = INKPTR_I2C_SCL_Pin;
+    GPIO_InitStructure.GPIO_Mode    = GPIO_Mode_Out_OD;
+    GPIO_InitStructure.GPIO_Speed   = INKPTR_I2C_GPIO_Speed;
     GPIO_Init(INKPTR_I2C_SCL_Port, &GPIO_InitStructure);
     // SDA
-    GPIO_InitStructure.GPIO_Pin = INKPTR_I2C_SDA_Pin;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = INKPTR_I2C_GPIO_Speed;
+    GPIO_InitStructure.GPIO_Pin     = INKPTR_I2C_SDA_Pin;
+    GPIO_InitStructure.GPIO_Mode    = GPIO_Mode_Out_OD;
+    GPIO_InitStructure.GPIO_Speed   = INKPTR_I2C_GPIO_Speed;
     GPIO_Init(INKPTR_I2C_SDA_Port, &GPIO_InitStructure);
 
     INKPTR_I2C_Stop();
