@@ -84,7 +84,7 @@ void INKPTR_I2C_SendACK(uint8_t SendACK)
  */
 uint8_t INKPTR_I2C_ReceiveACK(void) 
 {
-    uint8_t ReceiveACK, TimeOut=200;
+    uint8_t ReceiveACK, TimeOut = 200;
 
     INKPTR_I2C_EditSDA(1);
     INKPTR_I2C_EditSCL(1);
