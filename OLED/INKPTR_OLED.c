@@ -214,7 +214,7 @@ void INKPTR_OLED_Roll(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, 
 	else				{INKPTR_I2C_SendByte(0x26);	INKPTR_I2C_ReceiveACK();}
 	INKPTR_I2C_SendByte(0);									INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(Page_Begin);						INKPTR_I2C_ReceiveACK();
-	INKPTR_I2C_SendByte(SpeedTable[RollMode&(~0x80)]);		INKPTR_I2C_ReceiveACK();
+	INKPTR_I2C_SendByte(SpeedTable[RollMode & (~0x80)]);	INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(Page_End);							INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(List_Begin);						INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(List_End);							INKPTR_I2C_ReceiveACK();
