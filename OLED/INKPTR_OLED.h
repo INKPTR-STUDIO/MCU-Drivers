@@ -18,7 +18,7 @@ typedef enum {INKPTR_OLED_SetMode_Show_DISABLE = 0, INKPTR_OLED_SetMode_Show_ENA
 typedef enum
 {
     INKPTR_OLED_RollMode_Right_1 = 0x00, INKPTR_OLED_RollMode_Right_2 = 0x01, INKPTR_OLED_RollMode_Right_3 = 0x02, INKPTR_OLED_RollMode_Right_4 = 0x03, INKPTR_OLED_RollMode_Right_5 = 0x04, INKPTR_OLED_RollMode_Right_6 = 0x05, INKPTR_OLED_RollMode_Right_7 = 0x06, INKPTR_OLED_RollMode_Right_8 = 0x07,
-    INKPTR_OLED_RollMode_Left_1 = 0x80, INKPTR_OLED_RollMode_Left_2 = 0x81, INKPTR_OLED_RollMode_Left_3 = 0x82, INKPTR_OLED_RollMode_Left_4 = 0x83, INKPTR_OLED_RollMode_Left_5 = 0x84, INKPTR_OLED_RollMode_Left_6 = 0x85, INKPTR_OLED_RollMode_Left_7 = 0x86, INKPTR_OLED_RollMode_Left_8 = 0x87,
+    INKPTR_OLED_RollMode_Left_1 = 0x80, INKPTR_OLED_RollMode_Left_2 = 0x81, INKPTR_OLED_RollMode_Left_3 = 0x82, INKPTR_OLED_RollMode_Left_4 = 0x83, INKPTR_OLED_RollMode_Left_5 = 0x84, INKPTR_OLED_RollMode_Left_6 = 0x85, INKPTR_OLED_RollMode_Left_7 = 0x86, INKPTR_OLED_RollMode_Left_8 = 0x87
 }
 INKPTR_OLED_RollMode;
 
