@@ -4,13 +4,13 @@
 
 
 #define INKPTR_OLED_ADD	0x78
-static const uint8_t INKPTR_OLED_Model_Dat[3][5]=
+static const uint8_t INKPTR_OLED_Model_Dat[3][5] =
 {
 	{0x3f, 0x12, 0x00, 7, 127},	// 128*64 Model
 	{0x1f, 0x02, 0x00, 3, 127},	// 128*32 Model
 	{0x27, 0x12, 0x1c, 4, 71}	// 72*40 Model
 };
-static const uint8_t INKPTR_OLED_InitCmd[]=
+static const uint8_t INKPTR_OLED_InitCmd[] =
 {
 	0xd5,0x80,	// Clock
 	0xd3,0x00,	// Column offset
