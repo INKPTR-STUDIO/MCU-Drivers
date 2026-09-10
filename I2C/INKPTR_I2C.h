@@ -3,9 +3,9 @@
 
 #include "ch32v00x.h"
 
-// Pin mapping register
+// GPIO mapping register
 #define INKPTR_I2C_RCC_APB2Periph  (RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD)
-// Pin speed
+// GPIO speed
 #define INKPTR_I2C_GPIO_Speed      GPIO_Speed_50MHz
 // SCL
 #define INKPTR_I2C_SCL_Port        GPIOC
