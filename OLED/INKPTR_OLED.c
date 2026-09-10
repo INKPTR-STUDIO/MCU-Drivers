@@ -222,7 +222,7 @@ void INKPTR_OLED_Init(INKPTR_OLED_AddressingMode AddressingMode, INKPTR_OLED_Set
  */
 void INKPTR_OLED_Roll(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, uint8_t List_End, INKPTR_OLED_RollMode RollMode)
 {
-	uint8_t SpeedTable[]={3, 2, 1, 0, 6, 5, 4, 7};
+	uint8_t SpeedTable[] = {3, 2, 1, 0, 6, 5, 4, 7};
 	if(INKPTR_OLED_ValueCheck_Page(Page_Begin) || INKPTR_OLED_ValueCheck_Page(Page_End))	{return;}
 	if(INKPTR_OLED_ValueCheck_List(List_Begin) || INKPTR_OLED_ValueCheck_List(List_End))	{return;}
 	if(Page_Begin > Page_End)	{return;}
