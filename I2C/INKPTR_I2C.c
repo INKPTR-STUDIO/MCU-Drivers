@@ -1,7 +1,7 @@
 #include "INKPTR_I2C.h"
 #include "ch32v00x.h"
 
-static void INKPTR_I2C_Delay(void)
+static void INKPTR_I2C_SCLDelay(void)
 {
 }
 
@@ -9,7 +9,7 @@ static void INKPTR_I2C_EditSCL(uint8_t Dat)
 {
     if(Dat) {GPIO_WriteBit(INKPTR_I2C_SCL_Port, INKPTR_I2C_SCL_Pin, Bit_SET);}
     else    {GPIO_WriteBit(INKPTR_I2C_SCL_Port, INKPTR_I2C_SCL_Pin, Bit_RESET);}
-    INKPTR_I2C_Delay();
+    INKPTR_I2C_SCLDelay();
 }
 static void INKPTR_I2C_EditSDA(uint8_t Dat)
 {
@@ -92,7 +92,7 @@ uint8_t INKPTR_I2C_ReceiveACK(void)
     {
         ReceiveACK = INKPTR_I2C_ReadSDA();
         if(!ReceiveACK)    {break;}
-        INKPTR_I2C_Delay();
+        INKPTR_I2C_SCLDelay();
     }
     INKPTR_I2C_EditSCL(0);
     return ReceiveACK;
