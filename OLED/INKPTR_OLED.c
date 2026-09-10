@@ -38,17 +38,14 @@ static void INKPTR_OLED_Dat(void)
  * 
  * @brief   Edit OLED display settings.
  * 
- * @param   Mode	- select one from the set modes.
- *              INKPTR_OLED_Brightness			- set brightness value.
- *              INKPTR_OLED_X_Flip				- set horizontal mirror flip.
- *              INKPTR_OLED_Y_Flip				- set vertical mirror flip.
- *              INKPTR_OLED_SetMode_ColorMode	- set color mode.
- *              INKPTR_OLED_RollSet				- screen scroll switch.
- *              INKPTR_OLED_ShowSet				- display switch.
- *          Dat		- input value or select one from the setting status.
- *              INKPTR_OLED_Brightness,                            				input:  0 ~ 255
- *              INKPTR_OLED_X_Flip & INKPTR_OLED_Y_Flip & INKPTR_OLED_ColorSet,	select: INKPTR_OLED_Normal / INKPTR_OLED_Opposite
- *              INKPTR_OLED_RollSet & INKPTR_OLED_ShowSet,                		select: INKPTR_OLED_ON / INKPTR_OLED_OFF
+ * @param   | Mode								| Dat
+ * 			-----------------------------------------------------------------------------------------------------------
+ *          | INKPTR_OLED_SetMode_Brightness	| (Value: 0 ~ 255)
+ *          | INKPTR_OLED_SetMode_X_FlipMode	| INKPTR_OLED_SetMode_X_Flip_Normal / INKPTR_OLED_SetMode_X_Flip_Mirror
+ *          | INKPTR_OLED_SetMode_Y_FlipMode	| INKPTR_OLED_SetMode_Y_Flip_Normal / INKPTR_OLED_SetMode_Y_Flip_Mirror
+ *          | INKPTR_OLED_SetMode_ColorMode		| INKPTR_OLED_SetMode_Color_Normal / INKPTR_OLED_SetMode_Color_Invert
+ *          | INKPTR_OLED_SetMode_RollSwitch	| INKPTR_OLED_SetMode_Roll_ENABLE / INKPTR_OLED_SetMode_Roll_DISABLE
+ *          | INKPTR_OLED_SetMode_ShowSwitch	| INKPTR_OLED_SetMode_Show_ENABLE / INKPTR_OLED_SetMode_Show_DISABLE
  * 
  * @return  none
  */
@@ -112,7 +109,7 @@ void INKPTR_OLED_Set(INKPTR_OLED_SetMode SetMode, uint8_t Dat)
 void INKPTR_OLED_Brush(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, uint8_t List_End, uint8_t Style_Byte)
 {
 	uint8_t x, y;
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_Switch_DISABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	for(y = Page_Begin ; y < Page_End+1 ; y++) {
 		INKPTR_OLED_Cmd();
 		INKPTR_I2C_SendByte(0xb0 + y);																	INKPTR_I2C_ReceiveACK();
@@ -128,8 +125,8 @@ void INKPTR_OLED_Brush(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin,
 /**
  * @fn      INKPTR_OLED_Draw
  * 
- * @brief   Send bytes with "IIC_SendByte" & "IIC_ReceiveACK" after the function to display them.
- * 			Pay attention to timing integrity, don't forget to end the sequence with "IIC_Stop"!
+ * @brief   Send bytes with "INKPTR_I2C_SendByte" & "INKPTR_I2C_ReceiveACK" after the function to display them.
+ * 			Pay attention to timing integrity, don't forget to end the sequence with "INKPTR_I2C_Stop"!
  * 
  * @param   Page_Begin	- the beginning of page add.
  * 			List_Begin	- the beginning of list add.
@@ -138,7 +135,7 @@ void INKPTR_OLED_Brush(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin,
  */
 void INKPTR_OLED_Draw(uint8_t Page_Begin, uint8_t List_Begin)
 {
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_Switch_DISABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	INKPTR_OLED_Cmd();
 	INKPTR_I2C_SendByte(0xB0 + Page_Begin);															INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(0x0F & (List_Begin + INKPTR_OLED_Model_Dat[INKPTR_OLED_Model][2]));			INKPTR_I2C_ReceiveACK();
@@ -157,23 +154,20 @@ void INKPTR_OLED_Draw(uint8_t Page_Begin, uint8_t List_Begin)
  * 				INKPTR_OLED_AddressingMode_VerticalMode
  * 				INKPTR_OLED_AddressingMode_PageMode
  * 			X_FlipMode		- select one to set initial horizontal mirror flip.
- * 				INKPTR_OLED_Mode_Normal
- * 				INKPTR_OLED_Mode_Opposite
+ * 				INKPTR_OLED_SetMode_X_Flip_Normal / INKPTR_OLED_SetMode_X_Flip_Mirror
  * 			Y_FlipMode		- select one to set initial vertical mirror flip.
- *  			INKPTR_OLED_Mode_Normal
- * 				INKPTR_OLED_Mode_Opposite
+ *  			INKPTR_OLED_SetMode_Y_Flip_Normal / INKPTR_OLED_SetMode_Y_Flip_Mirror
  * 			ColorMode		- select one to set initial color mode.
- *  			INKPTR_OLED_Mode_Normal
- * 				INKPTR_OLED_Mode_Opposite
+ *  			INKPTR_OLED_SetMode_Color_Normal / INKPTR_OLED_SetMode_Color_Invert
  * 			Brightness		- input one value of 0~255 to set initial brightness value.
  * 
  * @return  none
  */
-void INKPTR_OLED_Init(INKPTR_OLED_AddressingMode AddressingMode, INKPTR_OLED_Mode X_FlipMode, INKPTR_OLED_Mode Y_FlipMode, INKPTR_OLED_Mode ColorMode, uint8_t Brightness)
+void INKPTR_OLED_Init(INKPTR_OLED_AddressingMode AddressingMode, INKPTR_OLED_SetMode_X_Flip X_FlipMode, INKPTR_OLED_SetMode_Y_Flip Y_FlipMode, INKPTR_OLED_SetMode_Color ColorMode, uint8_t Brightness)
 {
 	uint8_t i;
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_ShowSwitch, INKPTR_OLED_Switch_DISABLE);
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_Switch_DISABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_ShowSwitch, INKPTR_OLED_SetMode_Show_DISABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 
 	INKPTR_OLED_Cmd();
 	for(i = 0 ; i < sizeof(INKPTR_OLED_InitCmd) ; i++) {INKPTR_I2C_SendByte(INKPTR_OLED_InitCmd[i]);	INKPTR_I2C_ReceiveACK();}
@@ -191,7 +185,7 @@ void INKPTR_OLED_Init(INKPTR_OLED_AddressingMode AddressingMode, INKPTR_OLED_Mod
 	INKPTR_OLED_Set(INKPTR_OLED_SetMode_ColorMode, ColorMode);
 	INKPTR_OLED_Brush(0, INKPTR_OLED_Model_Dat[INKPTR_OLED_Model][3], 0, INKPTR_OLED_Model_Dat[INKPTR_OLED_Model][4], 0);
 
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_ShowSwitch, INKPTR_OLED_Switch_ENABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_ShowSwitch, INKPTR_OLED_SetMode_Show_ENABLE);
 }
 
 /**
@@ -214,7 +208,7 @@ void INKPTR_OLED_Roll(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, 
 {
 	uint8_t SpeedTable[]={3, 2, 1, 0, 6, 5, 4, 7};
 
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_Switch_DISABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_DISABLE);
 	INKPTR_OLED_Cmd();
 	if(RollMode & 0x80)	{INKPTR_I2C_SendByte(0x27);	INKPTR_I2C_ReceiveACK();}
 	else				{INKPTR_I2C_SendByte(0x26);	INKPTR_I2C_ReceiveACK();}
@@ -225,5 +219,5 @@ void INKPTR_OLED_Roll(uint8_t Page_Begin, uint8_t Page_End, uint8_t List_Begin, 
 	INKPTR_I2C_SendByte(List_Begin);						INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_SendByte(List_End);							INKPTR_I2C_ReceiveACK();
 	INKPTR_I2C_Stop();
-	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_Switch_ENABLE);
+	INKPTR_OLED_Set(INKPTR_OLED_SetMode_RollSwitch, INKPTR_OLED_SetMode_Roll_ENABLE);
 }
