@@ -1,7 +1,6 @@
 # MCU-Lab
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/INKPTR-STUDIO/MCU-Lab?style=social)](https://github.com/INKPTR-STUDIO/MCU-Lab/stargazers)
 
 仓库基于 CH32V00x 单片机编写、测试，整理收纳了一些基础开发资源。
 
