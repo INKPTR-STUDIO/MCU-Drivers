@@ -75,6 +75,7 @@
   }
   .zoom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #9aa4b2; }
   .zoom input { width: 110px; }
+  .panels { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .stage {
     display: inline-block;
     max-width: 100%;
@@ -84,6 +85,8 @@
     border-radius: 8px;
     background: #000;
   }
+  .stage[hidden] { display: none; }
+  .panel-title { margin-bottom: 8px; font-size: 12px; color: #6b7480; }
   canvas { display: block; }
   .hint { margin-top: 12px; font-size: 12px; line-height: 1.7; color: #6b7480; }
 </style>
@@ -95,6 +98,7 @@
 <div class="toolbar">
   <label class="btn" for="fileInput">添加文件（.bin格式）</label>
   <input id="fileInput" type="file" accept=".bin">
+  <button id="downloadBtn" class="btn" type="button" disabled>下载 .bin</button>
   <label class="field">字符占页值<input id="pagesPerChar" type="number" min="1" max="8" step="1" value="1"></label>
   <label class="field">字符宽度<input id="charWidth" type="number" min="1" max="128" step="1" value="1"></label>
   <label class="field"><input id="showBox" type="checkbox" checked>字符边框</label>
@@ -113,8 +117,14 @@
   <span class="info" id="fileInfo">尚未选择文件</span>
 </div>
 
-<div class="stage">
-  <canvas id="cv"></canvas>
+<div class="panels">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+  </div>
+  <div class="stage" id="editStage" hidden>
+    <div class="panel-title">编辑区（点击方格翻转黑白）</div>
+    <canvas id="editCv"></canvas>
+  </div>
 </div>
 
 <p class="hint">
@@ -122,7 +132,8 @@
   屏幕为 128 列 × 8 个大行（每大行 8 像素高），大行与小行间距一致。<br>
   字符占页值 P：一个字符占 P 个大行（P=1 高 8 像素，P=2 高 16 像素）。字符宽度 W：一个字符占 W 个字节（W 列）。<br>
   布局：先取 W 个字节放在当前大行的当前位置，再取 W 个字节放在下一个大行（同一列区间），共 P 段；当前行剩余列数不足 W 则换行；整页排不下时停止，翻页从该字符继续。<br>
-  勾选"字符边框"可用细红线框出每个字符所占的 W 列 × P 个大行的边界；点击某个红框即可选中该字符，上方显示其首个字节在文件中的地址（十六进制，从 0 开始）。
+  勾选"字符边框"可用细红线框出每个字符所占的 W 列 × P 个大行的边界；点击某个红框即可选中该字符，上方显示其首个字节在文件中的地址（十六进制，从 0 开始）。<br>
+  选中字符后右侧出现编辑区：点击编辑区内的方格可翻转黑白，改动会同步到左边点阵区与文件数据；点击"下载 .bin"可导出修改后的文件。
 </p>
 
 <script>
@@ -144,12 +155,19 @@
   const nextBtn = document.getElementById('nextBtn');
   const boxInput = document.getElementById('showBox');
   const selInfo = document.getElementById('selInfo');
+  const editStage = document.getElementById('editStage');
+  const editCv = document.getElementById('editCv');
+  const editCtx = editCv.getContext('2d');
+  const downloadBtn = document.getElementById('downloadBtn');
 
   let bytes = new Uint8Array(0); // 文件数据
+  let fileName = '';             // 当前文件名（用于下载）
   let pageStarts = [0];          // 每一页起始的字节位置
   let pageIndex = 0;             // 当前页
   let currentPage = null;        // 当前渲染出的页（含 cells，供点击命中用）
   let selectedAddr = null;       // 选中字符的首字节在文件中的地址
+  let editCell = null;           // 编辑区当前编辑的字符
+  let editPitch = 8;             // 编辑区每格间距
 
   function clampInt(value, min, max, fallback) {
     let n = parseInt(value, 10);
@@ -283,15 +301,71 @@
     selInfo.textContent = '地址（HEX）：' +
       (selectedAddr === null ? '—' : selectedAddr.toString(16).toUpperCase());
 
+    renderEdit(selCell);
+
     prevBtn.disabled = pageIndex <= 0;
     nextBtn.disabled = pageIndex >= pageStarts.length - 1;
     pageInfo.textContent = '第 ' + (pageIndex + 1) + ' / ' + pageStarts.length + ' 页';
+  }
+
+  // 编辑区：显示选中字符的点阵，尺寸按该字符的 W 列 × P*8 行
+  function renderEdit(cell) {
+    editCell = cell;
+    if (!cell) {
+      editStage.hidden = true;
+      return;
+    }
+    editStage.hidden = false;
+
+    const P = getPagesPerChar();
+    const W = getCharWidth();
+    const rows = P * 8;
+    const dpr = window.devicePixelRatio || 1;
+    const pitch = Math.max(3, Math.min(20, Math.floor(560 / Math.max(W, rows))));
+    const gap = Math.max(1, Math.round(pitch * 0.22));
+    const dot = Math.max(1, pitch - gap);
+    const off = (pitch - dot) / 2;
+    const cw = W * pitch;
+    const ch = rows * pitch;
+    editPitch = pitch;
+
+    editCv.width = Math.round(cw * dpr);
+    editCv.height = Math.round(ch * dpr);
+    editCv.style.width = cw + 'px';
+    editCv.style.height = ch + 'px';
+
+    editCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    editCtx.fillStyle = '#000';
+    editCtx.fillRect(0, 0, cw, ch);
+
+    // 该字符的字节：第 p 段第 k 列对应文件偏移 addr + p*W + k
+    editCtx.fillStyle = '#fff';
+    for (let p = 0; p < P; p++) {
+      for (let k = 0; k < W; k++) {
+        const index = cell.addr + p * W + k;
+        if (index >= bytes.length) continue;   // 文件末尾不足的部分没有数据
+        const byte = bytes[index];
+        if (byte === 0) continue;
+        const x = k * pitch + off;
+        const top = p * 8 * pitch;
+        for (let bit = 0; bit < 8; bit++) {
+          if ((byte >> bit) & 1) {
+            editCtx.fillRect(x, top + bit * pitch + off, dot, dot);
+          }
+        }
+      }
+    }
+
+    editCtx.strokeStyle = '#ff3b30';
+    editCtx.lineWidth = 1;
+    editCtx.strokeRect(0.5, 0.5, cw - 1, ch - 1);
   }
 
   function resetToFirstPage() {
     pageIndex = 0;
     selectedAddr = null;
     buildPages();
+    downloadBtn.disabled = bytes.length === 0;
     render();
   }
 
@@ -302,7 +376,8 @@
     try {
       const buf = await file.arrayBuffer();
       bytes = new Uint8Array(buf);
-      fileInfo.innerHTML = '<b>' + file.name + '</b> · ' + bytes.length + ' 字节';
+      fileName = file.name;
+      fileInfo.innerHTML = '<b>' + fileName + '</b> · ' + bytes.length + ' 字节';
       resetToFirstPage();
     } catch (err) {
       fileInfo.textContent = '读取失败：' + err.message;
@@ -351,6 +426,39 @@
 
     selectedAddr = hit ? hit.addr : null;   // 点空白处取消选中
     render();
+  });
+
+  // 点击编辑区的方格：黑白翻转，并同步到文件数据与左侧点阵区
+  editCv.addEventListener('click', function (e) {
+    if (!editCell) return;
+
+    const P = getPagesPerChar();
+    const W = getCharWidth();
+    const rect = editCv.getBoundingClientRect();
+    const col = Math.floor((e.clientX - rect.left) / editPitch);
+    const row = Math.floor((e.clientY - rect.top) / editPitch);
+    if (col < 0 || col >= W || row < 0 || row >= P * 8) return;
+
+    const index = editCell.addr + Math.floor(row / 8) * W + col;
+    if (index >= bytes.length) return;      // 文件末尾不足的位置无数据，不可编辑
+
+    bytes[index] ^= (1 << (row % 8));       // 翻转该位
+    render();                               // 主点阵区与编辑区一起刷新
+  });
+
+  // 下载修改后的 .bin
+  downloadBtn.addEventListener('click', function () {
+    if (bytes.length === 0) return;
+
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = 网站.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || 'modified.bin';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { 网站.revokeObjectURL(url); }, 1000);
   });
 
   prevBtn.addEventListener('click', function () {
