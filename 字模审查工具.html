@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>字模审查工具</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #14161a;
+    color: #e6e8eb;
+    font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 16px; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .btn {
+    padding: 8px 18px;
+    border: 0;
+    border-radius: 6px;
+    background: #2f6feb;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: #3b7bf7; }
+  .btn:active:not(:disabled) { background: #2560d4; }
+  .btn:disabled {
+    background: #2a2f37;
+    color: #5c6570;
+    cursor: not-allowed;
+  }
+  #fileInput { display: none; }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #9aa4b2;
+  }
+  .field input[type=number] {
+    width: 72px;
+    padding: 7px 8px;
+    border: 1px solid #2a2f37;
+    border-radius: 6px;
+    background: #1b1f26;
+    color: #e6e8eb;
+    font-size: 14px;
+  }
+  .field input[type=number]:focus { outline: none; border-color: #2f6feb; }
+  .field input[type=checkbox] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #ff3b30;
+    cursor: pointer;
+  }
+  .info { font-size: 13px; color: #9aa4b2; }
+  .info b { color: #d7dce3; font-weight: 600; }
+  .info.sel {
+    padding: 4px 10px;
+    border: 1px solid #6b5a10;
+    border-radius: 6px;
+    background: #2a2408;
+    color: #ffd60a;
+    font-family: Consolas, "Courier New", monospace;
+  }
+  .zoom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #9aa4b2; }
+  .zoom input { width: 110px; }
+  .stage {
+    display: inline-block;
+    max-width: 100%;
+    overflow: auto;
+    padding: 12px;
+    border: 1px solid #2a2f37;
+    border-radius: 8px;
+    background: #000;
+  }
+  canvas { display: block; }
+  .hint { margin-top: 12px; font-size: 12px; line-height: 1.7; color: #6b7480; }
+</style>
+</head>
+<body>
+
+<h1>字模审查工具</h1>
+
+<div class="toolbar">
+  <label class="btn" for="fileInput">添加文件（.bin格式）</label>
+  <input id="fileInput" type="file" accept=".bin">
+  <label class="field">字符占页值<input id="pagesPerChar" type="number" min="1" max="8" step="1" value="1"></label>
+  <label class="field">字符宽度<input id="charWidth" type="number" min="1" max="128" step="1" value="1"></label>
+  <label class="field"><input id="showBox" type="checkbox" checked>字符边框</label>
+  <span class="zoom">
+    缩放
+    <input id="zoom" type="range" min="3" max="16" value="8">
+    <span id="zoomValue">8px</span>
+  </span>
+</div>
+
+<div class="toolbar">
+  <button id="prevBtn" class="btn" type="button">上翻</button>
+  <button id="nextBtn" class="btn" type="button">下翻</button>
+  <span class="info" id="pageInfo">第 1 / 1 页</span>
+  <span class="info sel" id="selInfo">地址（HEX）：—</span>
+  <span class="info" id="fileInfo">尚未选择文件</span>
+</div>
+
+<div class="stage">
+  <canvas id="cv"></canvas>
+</div>
+
+<p class="hint">
+  每 1 个字节为 1 列（竖排 8 个方格）：高位在下、低位在上，bit 为 1 显示白色，为 0 显示黑色。<br>
+  屏幕为 128 列 × 8 个大行（每大行 8 像素高），大行与小行间距一致。<br>
+  字符占页值 P：一个字符占 P 个大行（P=1 高 8 像素，P=2 高 16 像素）。字符宽度 W：一个字符占 W 个字节（W 列）。<br>
+  布局：先取 W 个字节放在当前大行的当前位置，再取 W 个字节放在下一个大行（同一列区间），共 P 段；当前行剩余列数不足 W 则换行；整页排不下时停止，翻页从该字符继续。<br>
+  勾选"字符边框"可用细红线框出每个字符所占的 W 列 × P 个大行的边界；点击某个红框即可选中该字符，上方显示其首个字节在文件中的地址（十六进制，从 0 开始）。
+</p>
+
+<script>
+(function () {
+  const COLS = 128;        // 每行的列数（也是屏幕宽度）
+  const PAGES = 8;         // 大行数量（每个大行 8 像素高）
+  const ROWS = PAGES * 8;  // 屏幕高度 64
+
+  const canvas = document.getElementById('cv');
+  const ctx = canvas.getContext('2d');
+  const fileInput = document.getElementById('fileInput');
+  const fileInfo = document.getElementById('fileInfo');
+  const pageInfo = document.getElementById('pageInfo');
+  const pagesInput = document.getElementById('pagesPerChar');
+  const widthInput = document.getElementById('charWidth');
+  const zoomInput = document.getElementById('zoom');
+  const zoomValue = document.getElementById('zoomValue');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const boxInput = document.getElementById('showBox');
+  const selInfo = document.getElementById('selInfo');
+
+  let bytes = new Uint8Array(0); // 文件数据
+  let pageStarts = [0];          // 每一页起始的字节位置
+  let pageIndex = 0;             // 当前页
+  let currentPage = null;        // 当前渲染出的页（含 cells，供点击命中用）
+  let selectedAddr = null;       // 选中字符的首字节在文件中的地址
+
+  function clampInt(value, min, max, fallback) {
+    let n = parseInt(value, 10);
+    if (!Number.isFinite(n)) n = fallback;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    return n;
+  }
+
+  function getPagesPerChar() { return clampInt(pagesInput.value, 1, 8, 1); }
+  function getCharWidth() { return clampInt(widthInput.value, 1, 128, 1); }
+
+  // 从 start 字节开始，按当前参数把一页（整屏）排布出来
+  // 返回 { placements: [{page, col, byte}], cells: [{line, col}], next: 下一个未显示字符的字节位置 }
+  function layoutPage(start) {
+    const P = getPagesPerChar();
+    const W = getCharWidth();
+    const lines = Math.floor(PAGES / P);   // 一页能容纳的字符行数
+    const total = bytes.length;
+    const placements = [];
+    const cells = [];                      // 每个字符所占的方块（用于画边框）
+    let n = start;
+
+    for (let line = 0; line < lines; line++) {
+      // 当前行剩余列数不足 W 则换行
+      for (let col = 0; col + W <= COLS; col += W) {
+        if (n >= total) return { placements: placements, cells: cells, next: n };
+
+        const need = W * P;                        // 一个字符需要的字节数
+        const avail = Math.min(need, total - n);   // 文件剩余不足时只取能取的
+        let i = 0;
+        for (let p = 0; p < P && i < avail; p++) {
+          const page = line * P + p;               // 该段落在第几个大行
+          for (let k = 0; k < W && i < avail; k++) {
+            placements.push({ page: page, col: col + k, byte: bytes[n + i] });
+            i++;
+          }
+        }
+        cells.push({ line: line, col: col, addr: n });   // addr 为该字符首字节在文件中的地址
+        n += avail;
+        if (avail < need) return { placements: placements, cells: cells, next: n }; // 数据用尽，本页为最后一页
+      }
+    }
+    return { placements: placements, cells: cells, next: n };
+  }
+
+  // 预先把所有页的起始位置算出来（数据量很小）
+  function buildPages() {
+    const total = bytes.length;
+    pageStarts = [0];
+    let n = 0;
+    while (n < total) {
+      const page = layoutPage(n);
+      if (page.next <= n) break;   // 保护：不前进则停止
+      n = page.next;
+      if (n < total) pageStarts.push(n);
+    }
+    if (pageIndex > pageStarts.length - 1) pageIndex = pageStarts.length - 1;
+    if (pageIndex < 0) pageIndex = 0;
+  }
+
+  function render() {
+    const dpr = window.devicePixelRatio || 1;
+    const pitch = Number(zoomInput.value);          // 相邻方格的间距（含空隙）
+    const gap = Math.max(1, Math.round(pitch * 0.22));
+    const dot = Math.max(1, pitch - gap);           // 方格边长
+    const off = (pitch - dot) / 2;                  // 空隙均分，保证间距均匀
+    const W = COLS * pitch;
+    const H = ROWS * pitch;
+
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#000';                         // 先整屏清为黑色
+    ctx.fillRect(0, 0, W, H);
+
+    const start = pageStarts[pageIndex] || 0;
+    const page = layoutPage(start);
+    currentPage = page;
+
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < page.placements.length; i++) {
+      const pl = page.placements[i];
+      const x = pl.col * pitch + off;
+      const pageTop = pl.page * 8 * pitch;
+      for (let bit = 0; bit < 8; bit++) {
+        if ((pl.byte >> bit) & 1) {
+          const y = pageTop + bit * pitch + off;    // 低位在上（bit0 在最上），高位在下（bit7 在最下）
+          ctx.fillRect(x, y, dot, dot);
+        }
+      }
+    }
+
+    const cw = getCharWidth() * pitch;               // 字符框宽
+    const ch = getPagesPerChar() * 8 * pitch;        // 字符框高
+    let selCell = null;
+    if (selectedAddr !== null) {
+      for (let i = 0; i < page.cells.length; i++) {
+        if (page.cells[i].addr === selectedAddr) { selCell = page.cells[i]; break; }
+      }
+    }
+
+    // 选中遮罩
+    if (selCell) {
+      ctx.fillStyle = 'rgba(255, 214, 10, 0.25)';
+      ctx.fillRect(selCell.col * pitch, selCell.line * ch, cw, ch);
+    }
+
+    // 用细红线框出每个字符的点阵边界
+    if (boxInput.checked && page.cells.length) {
+      ctx.strokeStyle = '#ff3b30';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < page.cells.length; i++) {
+        const cell = page.cells[i];
+        ctx.rect(cell.col * pitch + 0.5, cell.line * ch + 0.5, cw - 1, ch - 1);
+      }
+      ctx.stroke();
+    }
+
+    // 选中框
+    if (selCell) {
+      ctx.strokeStyle = '#ffd60a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(selCell.col * pitch + 1, selCell.line * ch + 1, cw - 2, ch - 2);
+    }
+
+    selInfo.textContent = '地址（HEX）：' +
+      (selectedAddr === null ? '—' : selectedAddr.toString(16).toUpperCase());
+
+    prevBtn.disabled = pageIndex <= 0;
+    nextBtn.disabled = pageIndex >= pageStarts.length - 1;
+    pageInfo.textContent = '第 ' + (pageIndex + 1) + ' / ' + pageStarts.length + ' 页';
+  }
+
+  function resetToFirstPage() {
+    pageIndex = 0;
+    selectedAddr = null;
+    buildPages();
+    render();
+  }
+
+  fileInput.addEventListener('change', async function () {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+
+    try {
+      const buf = await file.arrayBuffer();
+      bytes = new Uint8Array(buf);
+      fileInfo.innerHTML = '<b>' + file.name + '</b> · ' + bytes.length + ' 字节';
+      resetToFirstPage();
+    } catch (err) {
+      fileInfo.textContent = '读取失败：' + err.message;
+    }
+
+    fileInput.value = ''; // 允许再次选择同一个文件
+  });
+
+  pagesInput.addEventListener('change', function () {
+    pagesInput.value = getPagesPerChar();
+    resetToFirstPage();
+  });
+
+  widthInput.addEventListener('change', function () {
+    widthInput.value = getCharWidth();
+    resetToFirstPage();
+  });
+
+  zoomInput.addEventListener('input', function () {
+    zoomValue.textContent = zoomInput.value + 'px';
+    render();
+  });
+
+  boxInput.addEventListener('change', function () {
+    render();
+  });
+
+  // 点击红框选中该字符，显示其首字节在文件中的地址
+  canvas.addEventListener('click', function (e) {
+    if (!currentPage) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const pitch = Number(zoomInput.value);
+    const charWidth = getCharWidth();
+    const cw = charWidth * pitch;
+    const ch = getPagesPerChar() * 8 * pitch;
+
+    const line = Math.floor((e.clientY - rect.top) / ch);
+    const col = Math.floor((e.clientX - rect.left) / cw) * charWidth;
+
+    let hit = null;
+    for (let i = 0; i < currentPage.cells.length; i++) {
+      const cell = currentPage.cells[i];
+      if (cell.line === line && cell.col === col) { hit = cell; break; }
+    }
+
+    selectedAddr = hit ? hit.addr : null;   // 点空白处取消选中
+    render();
+  });
+
+  prevBtn.addEventListener('click', function () {
+    if (pageIndex <= 0) return;
+    pageIndex--;
+    selectedAddr = null;
+    render();
+  });
+
+  nextBtn.addEventListener('click', function () {
+    if (pageIndex >= pageStarts.length - 1) return;
+    pageIndex++;
+    selectedAddr = null;
+    render();
+  });
+
+  zoomValue.textContent = zoomInput.value + 'px';
+  render();
+})();
+</script>
+
+</body>
+</html>
