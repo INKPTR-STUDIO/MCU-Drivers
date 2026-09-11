@@ -29,7 +29,7 @@
 
 ### 🛠️ 实用工具
 
-- [***Font_Review_Tool***](Font_Review_Tool/)：bin 字模文件的轻量级审查工具（html），此工具使用 DeepSeek V4 Flash 和 Trae 辅助构建。
+- [***Font_Review_Tool***](Font_Review_Tool/)：bin 字模文件的轻量级审查工具（html），此工具使用 DeepSeek V4 Flash 和 Trae 辅助构建
 
 ---
 
