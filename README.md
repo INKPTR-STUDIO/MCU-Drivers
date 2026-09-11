@@ -2,4 +2,4 @@
 <br>
 本仓库收纳了个人整理的一些基础开发资源，比如通信协议、硬件驱动和点阵字模。可使用目录跳转：
 <br>
-[**I2C**](I2C/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
