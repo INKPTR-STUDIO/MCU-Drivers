@@ -1,5 +1,24 @@
 # MCU-Drivers
-<br>
-本仓库收纳了个人整理的一些基础开发资源，比如通信协议、硬件驱动和点阵字模。可使用目录跳转：
-<br>
+
+仓库基于 CH32V00x 单片机，整理收纳了个人的一些基础开发资源，例如通信协议、硬件驱动和点阵字模。
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/你的用户名/你的仓库名?style=social)](https://github.com/你的用户名/你的仓库名/stargazers)
+
+## 通信协议
+
+- [***I2C***](I2C/)：IIC / I2C 通信协议
+
+- [***SPI***](SPI/)：SPI 通信协议（常规 4 线，CS、SCK、MOSI、MISO）
+
+## 硬件驱动
+
+- [***OLED***](OLED/)：OLED 显示屏（针对 SSD1306 型号开发，兼容 SSD1316 型号，兼容 128x64、128x32、72x40 分辨率）
+
+## 点阵字模
+
+- [***ASCLL_6x8***](ASCLL_6x8/)：ASCLL 字符集的 6x8 点阵字模，高位在下、低位在上，竖置横排
+
+---
+
+更多驱动正在编写或测试中，敬请期待……
