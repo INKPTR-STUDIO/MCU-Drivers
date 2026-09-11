@@ -19,6 +19,10 @@
 
 - [***ASCLL_6x8***](ASCLL_6x8/)：ASCLL 字符集的 6x8 点阵字模，高位在下、低位在上，竖置横排（个人原创手绘）
 
+## 实用工具
+
+- [***Font_Review_Tool***](Font_Review_Tool/)：bin 字模文件的轻量级审查工具（html），此工具使用 Deepseek V4 Flash 和 Trae 辅助构建。
+
 ---
 
 更多资源正在编辑整理或测试中，敬请期待……
