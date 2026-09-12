@@ -4,7 +4,7 @@
 
 仓库基于 CH32V00x 单片机编写、测试，整理收纳了一些基础开发资源。
 
-下方目录链接可访问查看对应内容，[点击下载仓库全部资源](https://github.com/INKPTR-STUDIO/MCU-Lab/archive/refs/heads/main.zip)。
+下方目录链接可访问查看对应内容，[点击此处下载仓库全部资源](https://github.com/INKPTR-STUDIO/MCU-Lab/archive/refs/heads/main.zip)。
 
 <br>
 
