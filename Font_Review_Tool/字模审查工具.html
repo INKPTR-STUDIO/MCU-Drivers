@@ -65,6 +65,18 @@
   }
   .info { font-size: 13px; color: #9aa4b2; }
   .info b { color: #d7dce3; font-weight: 600; }
+  #pageInfo { display: flex; align-items: center; gap: 6px; }
+  #pageInput {
+    width: 64px;
+    padding: 5px 6px;
+    border: 1px solid #2a2f37;
+    border-radius: 6px;
+    background: #1b1f26;
+    color: #e6e8eb;
+    font-size: 13px;
+    text-align: center;
+  }
+  #pageInput:focus { outline: none; border-color: #2f6feb; }
   .info.sel {
     padding: 4px 10px;
     border: 1px solid #6b5a10;
@@ -112,7 +124,10 @@
 <div class="toolbar">
   <button id="prevBtn" class="btn" type="button">上翻</button>
   <button id="nextBtn" class="btn" type="button">下翻</button>
-  <span class="info" id="pageInfo">第 1 / 1 页</span>
+  <span class="info" id="pageInfo">第
+    <input id="pageInput" type="number" min="1" max="1" step="1" value="1">
+    / <span id="pageTotal">1</span> 页
+  </span>
   <span class="info sel" id="selInfo">地址（HEX）：—</span>
   <span class="info" id="fileInfo">尚未选择文件</span>
 </div>
@@ -133,7 +148,8 @@
   字符占页值 P：一个字符占 P 个大行（P=1 高 8 像素，P=2 高 16 像素）。字符宽度 W：一个字符占 W 个字节（W 列）。<br>
   布局：先取 W 个字节放在当前大行的当前位置，再取 W 个字节放在下一个大行（同一列区间），共 P 段；当前行剩余列数不足 W 则换行；整页排不下时停止，翻页从该字符继续。<br>
   勾选"字符边框"可用细红线框出每个字符所占的 W 列 × P 个大行的边界；点击某个红框即可选中该字符，上方显示其首个字节在文件中的地址（十六进制，从 0 开始）。<br>
-  选中字符后右侧出现编辑区：点击编辑区内的方格可翻转黑白，改动会同步到左边点阵区与文件数据；点击"下载 .bin"可导出修改后的文件。
+  选中字符后右侧出现编辑区：点击编辑区内的方格可翻转黑白，改动会同步到左边点阵区与文件数据；点击"下载 .bin"可导出修改后的文件。<br>
+  页码输入框可直接输入数字并回车（或点右侧箭头），快速跳转到指定渲染页。
 </p>
 
 <script>
@@ -146,7 +162,8 @@
   const ctx = canvas.getContext('2d');
   const fileInput = document.getElementById('fileInput');
   const fileInfo = document.getElementById('fileInfo');
-  const pageInfo = document.getElementById('pageInfo');
+  const pageInput = document.getElementById('pageInput');
+  const pageTotal = document.getElementById('pageTotal');
   const pagesInput = document.getElementById('pagesPerChar');
   const widthInput = document.getElementById('charWidth');
   const zoomInput = document.getElementById('zoom');
@@ -305,7 +322,22 @@
 
     prevBtn.disabled = pageIndex <= 0;
     nextBtn.disabled = pageIndex >= pageStarts.length - 1;
-    pageInfo.textContent = '第 ' + (pageIndex + 1) + ' / ' + pageStarts.length + ' 页';
+    pageInput.max = pageStarts.length;
+    pageInput.value = pageIndex + 1;
+    pageTotal.textContent = pageStarts.length;
+  }
+
+  // 跳转到指定页（页码输入框 / 回车）
+  function goToPage(value) {
+    const total = pageStarts.length;
+    let n = parseInt(value, 10);
+    if (!Number.isFinite(n)) n = pageIndex + 1;
+    if (n < 1) n = 1;
+    if (n > total) n = total;
+
+    pageIndex = n - 1;
+    selectedAddr = null;     // 与上下翻页一致：跳页后清除选中
+    render();
   }
 
   // 编辑区：显示选中字符的点阵，尺寸按该字符的 W 列 × P*8 行
@@ -459,6 +491,18 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { 网站.revokeObjectURL(url); }, 1000);
+  });
+
+  // 页码输入框：可编辑，回车或失焦后跳转到指定页
+  pageInput.addEventListener('change', function () {
+    goToPage(pageInput.value);
+  });
+
+  pageInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      goToPage(pageInput.value);
+      pageInput.blur();
+    }
   });
 
   prevBtn.addEventListener('click', function () {
